@@ -1,0 +1,24 @@
+server.port=8080
+server.servlet.context-path=/api
+spring.application.name=ERP System
+
+# Database - REPLACE WITH YOUR VALUES
+spring.datasource.url=jdbc:postgresql://localhost:5432/erp_db
+spring.datasource.username=YOUR_DB_USERNAME
+spring.datasource.password=YOUR_DB_PASSWORD
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+
+# JWT - REPLACE WITH YOUR SECRET
+jwt.secret=YOUR_JWT_SECRET_KEY_MIN_256_BITS
+jwt.expiration=86400000
+
+spring.messages.basename=messages/messages
+spring.messages.encoding=UTF-8
+
+logging.level.com.erp=DEBUG
+
+management.endpoints.web.exposure.include=health,info
+management.endpoint.health.show-details=always

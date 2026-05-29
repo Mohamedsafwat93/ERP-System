@@ -36,3 +36,6 @@ application-local.properties
 # Temporary files
 *.tmp
 *.bak
+
+# Sensitive configuration
+src/main/resources/application.properties
