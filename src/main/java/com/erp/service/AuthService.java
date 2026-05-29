@@ -13,7 +13,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,7 +21,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
 
 @Service
 @RequiredArgsConstructor
@@ -41,35 +40,39 @@ public class AuthService {
         log.info("Login attempt for user: {}", loginRequest.getUsername());
 
         try {
+            // Authenticate the user
             Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                    loginRequest.getUsername(),
-                    loginRequest.getPassword()
-                )
+                    new UsernamePasswordAuthenticationToken(
+                            loginRequest.getUsername(),
+                            loginRequest.getPassword()
+                    )
             );
 
+            log.info("Authentication successful for user: {}", loginRequest.getUsername());
+
+            // Get user from database
             User user = userRepository.findByUsername(loginRequest.getUsername())
-                .orElseThrow(() -> new BadCredentialsException("User not found"));
+                    .orElseThrow(() -> new BadCredentialsException("User not found"));
 
             // Update last login
             user.setLastLogin(LocalDateTime.now());
             userRepository.save(user);
 
-            // Create UserDetails for token generation
-            UserDetails userDetails = createUserDetails(user);
+            // Generate token using the authenticated user details
+            UserDetails userDetails = (UserDetails) authentication.getPrincipal();
             String token = jwtUtil.generateToken(userDetails);
 
-            log.info("User logged in successfully: {}", loginRequest.getUsername());
+            log.info("Token generated successfully for user: {}", loginRequest.getUsername());
 
             return LoginResponse.builder()
-                .userId(user.getId())
-                .username(user.getUsername())
-                .email(user.getEmail())
-                .token(token)
-                .message("Login successful")
-                .build();
+                    .userId(user.getId())
+                    .username(user.getUsername())
+                    .email(user.getEmail())
+                    .token(token)
+                    .message("Login successful")
+                    .build();
 
-        } catch (BadCredentialsException e) {
+        } catch (AuthenticationException e) {
             log.warn("Login failed for user: {} - Invalid credentials", loginRequest.getUsername());
             throw new BadCredentialsException("Invalid username or password");
         } catch (Exception e) {
@@ -87,13 +90,11 @@ public class AuthService {
 
         // Check if username exists
         if (userRepository.existsByUsername(registerRequest.getUsername())) {
-            log.warn("Registration failed: Username already exists - {}", registerRequest.getUsername());
             throw new RuntimeException("Username already exists");
         }
 
         // Check if email exists
         if (userRepository.existsByEmail(registerRequest.getEmail())) {
-            log.warn("Registration failed: Email already exists - {}", registerRequest.getEmail());
             throw new RuntimeException("Email already exists");
         }
 
@@ -103,7 +104,7 @@ public class AuthService {
         user.setEmail(registerRequest.getEmail());
         user.setFullName(registerRequest.getFullName());
         user.setPasswordHash(passwordEncoder.encode(registerRequest.getPassword()));
-        user.setRole(UserRole.VIEWER); // Default role for new users
+        user.setRole(UserRole.ADMIN); // Set as ADMIN for testing
         user.setIsActive(true);
         user.setCreatedAt(LocalDateTime.now());
         user.setTenantId(1);
@@ -112,27 +113,20 @@ public class AuthService {
         log.info("User registered successfully: {}", savedUser.getUsername());
 
         // Generate token for new user
-        UserDetails userDetails = createUserDetails(savedUser);
+        UserDetails userDetails = org.springframework.security.core.userdetails.User.builder()
+                .username(savedUser.getUsername())
+                .password(savedUser.getPasswordHash())
+                .authorities(new SimpleGrantedAuthority("ROLE_" + savedUser.getRole().name()))
+                .build();
+
         String token = jwtUtil.generateToken(userDetails);
 
         return LoginResponse.builder()
-            .userId(savedUser.getId())
-            .username(savedUser.getUsername())
-            .email(savedUser.getEmail())
-            .token(token)
-            .message("Registration successful")
-            .build();
-    }
-
-    /**
-     * Create UserDetails from User entity
-     */
-    private UserDetails createUserDetails(User user) {
-        return org.springframework.security.core.userdetails.User.builder()
-            .username(user.getUsername())
-            .password(user.getPasswordHash())
-            .authorities(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
-            .disabled(!user.getIsActive())
-            .build();
+                .userId(savedUser.getId())
+                .username(savedUser.getUsername())
+                .email(savedUser.getEmail())
+                .token(token)
+                .message("Registration successful")
+                .build();
     }
 }

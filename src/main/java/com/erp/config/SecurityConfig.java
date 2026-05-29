@@ -20,7 +20,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
 import java.util.Arrays;
 
 @Configuration
@@ -56,7 +55,6 @@ public class SecurityConfig {
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
-
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
@@ -76,26 +74,27 @@ public class SecurityConfig {
                 .anonymous(anonymous -> anonymous.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
-                        // ✅ PUBLIC ENDPOINTS
-                        .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/auth/register").permitAll()
+                        // PUBLIC ENDPOINTS
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/register").permitAll()
 
-                        // ✅ PROTECTED ENDPOINTS
-                        .requestMatchers("/auth/me").authenticated()
-                        .requestMatchers("/customers/**").authenticated()
-                        .requestMatchers("/products/**").authenticated()
-                        .requestMatchers("/sales/**").authenticated()
-                        .requestMatchers("/wallet/**").authenticated()
+                        // AUTH ENDPOINTS
+                        .requestMatchers("/api/auth/me").authenticated()
 
-                        // ✅ ADMIN ONLY
+                        // API ENDPOINTS - TEMPORARILY PUBLIC FOR TESTING
+                        .requestMatchers("/api/suppliers/**").permitAll()  // ← TEMPORARY
+                        .requestMatchers("/api/customers/**").permitAll()   // ← TEMPORARY
+                        .requestMatchers("/api/products/**").permitAll()    // <-TEMPORARY
+                        .requestMatchers("/api/uoms/**").permitAll()       // ← TEMPORARY
+
+                        // ADMIN ONLY
                         .requestMatchers("/admin/**").hasRole("ADMIN")
 
-                        // ✅ EVERYTHING ELSE
+                        // EVERYTHING ELSE
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-
         return http.build();
     }
 }
