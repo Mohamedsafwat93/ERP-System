@@ -1,11 +1,12 @@
 package com.erp.config;
 
-import com.erp.entity.UnitOfMeasure;
-import com.erp.repository.UnitOfMeasureRepository;
+import com.erp.entity.*;
+import com.erp.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+import java.math.BigDecimal;
 
 @Component
 @RequiredArgsConstructor
@@ -13,9 +14,16 @@ import org.springframework.stereotype.Component;
 public class DataInitializer implements CommandLineRunner {
 
     private final UnitOfMeasureRepository uomRepository;
+    private final CurrencyRepository currencyRepository;
+    private final TaxRateRepository taxRateRepository;
+    private final WasteTypeRepository wasteTypeRepository;  // ← Changed from WasteTypesRepository
 
     @Override
     public void run(String... args) throws Exception {
+
+        // ============================================
+        // 1. Initialize UOM Data
+        // ============================================
         if (uomRepository.count() == 0) {
             log.info("Inserting UOM data...");
 
@@ -42,7 +50,59 @@ public class DataInitializer implements CommandLineRunner {
 
             log.info("UOM data inserted successfully!");
         }
+
+        // ============================================
+        // 2. Initialize Currency Data
+        // ============================================
+        if (currencyRepository.count() == 0) {
+            log.info("Inserting Currency data...");
+
+            currencyRepository.save(createCurrency("SAR", "ريال سعودي", "Saudi Riyal", "﷼", false, new BigDecimal("0.266667")));
+            currencyRepository.save(createCurrency("USD", "دولار أمريكي", "US Dollar", "$", false, new BigDecimal("0.071111")));
+            currencyRepository.save(createCurrency("AED", "درهم إماراتي", "UAE Dirham", "د.إ", false, new BigDecimal("0.261111")));
+            currencyRepository.save(createCurrency("EUR", "يورو", "Euro", "€", false, new BigDecimal("0.065000")));
+            currencyRepository.save(createCurrency("EGP", "جنيه مصري", "Egyptian Pound", "ج.م", true, BigDecimal.ONE));
+
+            log.info("Currency data inserted successfully!");
+        }
+
+        // ============================================
+        // 3. Initialize Tax Rate Data
+        // ============================================
+        if (taxRateRepository.count() == 0) {
+            log.info("Inserting Tax Rate data...");
+
+            taxRateRepository.save(createTaxRate("SA", "ضريبة القيمة المضافة", "VAT", new BigDecimal("15.00"), false));
+            taxRateRepository.save(createTaxRate("AE", "ضريبة القيمة المضافة", "VAT", new BigDecimal("5.00"), false));
+            taxRateRepository.save(createTaxRate("US", "ضريبة المبيعات", "Sales Tax", BigDecimal.ZERO, false));
+            taxRateRepository.save(createTaxRate("EG", "ضريبة القيمة المضافة", "VAT", new BigDecimal("14.00"), true));
+
+            log.info("Tax Rate data inserted successfully!");
+        }
+
+        // ============================================
+        // 4. Initialize Waste Types Data
+        // ============================================
+        if (wasteTypeRepository != null && wasteTypeRepository.count() == 0) {
+            log.info("Inserting Waste Types data...");
+
+            wasteTypeRepository.save(createWasteType("DAMAGED", "تالف", "Damaged", "DAMAGED"));
+            wasteTypeRepository.save(createWasteType("EXPIRED", "منتهي الصلاحية", "Expired", "EXPIRED"));
+            wasteTypeRepository.save(createWasteType("RETURNED", "مرتجع عميل", "Customer Returned", "RETURNED"));
+            wasteTypeRepository.save(createWasteType("DEFECTIVE", "عيب تصنيع", "Defective", "DEFECTIVE"));
+            wasteTypeRepository.save(createWasteType("OBSOLETE", "منتج قديم", "Obsolete", "OBSOLETE"));
+
+            log.info("Waste Types data inserted successfully!");
+        }
+
+        log.info("========================================");
+        log.info("All initial data loaded successfully!");
+        log.info("========================================");
     }
+
+    // ============================================
+    // Helper Methods
+    // ============================================
 
     private UnitOfMeasure createUOM(String code, String nameAr, String nameEn,
                                     String category, String symbol, int sortOrder) {
@@ -53,6 +113,41 @@ public class DataInitializer implements CommandLineRunner {
                 .category(category)
                 .symbol(symbol)
                 .sortOrder(sortOrder)
+                .isActive(true)
+                .build();
+    }
+
+    private Currency createCurrency(String code, String nameAr, String nameEn,
+                                    String symbol, boolean isBase, BigDecimal exchangeRate) {
+        return Currency.builder()
+                .code(code)
+                .nameAr(nameAr)
+                .nameEn(nameEn)
+                .symbol(symbol)
+                .isBase(isBase)
+                .exchangeRate(exchangeRate)
+                .isActive(true)
+                .build();
+    }
+
+    private TaxRate createTaxRate(String countryCode, String taxNameAr,
+                                  String taxNameEn, BigDecimal rate, boolean isDefault) {
+        return TaxRate.builder()
+                .countryCode(countryCode)
+                .taxNameAr(taxNameAr)
+                .taxNameEn(taxNameEn)
+                .rate(rate)
+                .isDefault(isDefault)
+                .isActive(true)
+                .build();
+    }
+
+    private WasteType createWasteType(String code, String nameAr, String nameEn, String category) {
+        return WasteType.builder()
+                .code(code)
+                .nameAr(nameAr)
+                .nameEn(nameEn)
+                .category(category)
                 .isActive(true)
                 .build();
     }
