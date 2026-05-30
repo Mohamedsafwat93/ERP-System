@@ -81,11 +81,18 @@ public class SecurityConfig {
                         // AUTH ENDPOINTS
                         .requestMatchers("/api/auth/me").authenticated()
 
-                        // API ENDPOINTS - TEMPORARILY PUBLIC FOR TESTING
-                        .requestMatchers("/api/suppliers/**").permitAll()  // ← TEMPORARY
-                        .requestMatchers("/api/customers/**").permitAll()   // ← TEMPORARY
-                        .requestMatchers("/api/products/**").permitAll()    // <-TEMPORARY
-                        .requestMatchers("/api/uoms/**").permitAll()       // ← TEMPORARY
+                        // PRINT and BACKUP endpoints
+                        .requestMatchers("/api/print/**").permitAll()
+                        .requestMatchers("/api/backup/**").permitAll()
+
+                        // API ENDPOINTS - PUBLIC FOR TESTING
+                        .requestMatchers("/api/suppliers/**").permitAll()
+                        .requestMatchers("/api/customers/**").permitAll()
+                        .requestMatchers("/api/products/**").permitAll()
+                        .requestMatchers("/api/uoms/**").permitAll()
+                        .requestMatchers("/api/users/**").permitAll()
+                        .requestMatchers("/api/dashboard/**").permitAll()
+                        .requestMatchers("/api/invoices/**").permitAll()
 
                         // ADMIN ONLY
                         .requestMatchers("/admin/**").hasRole("ADMIN")
